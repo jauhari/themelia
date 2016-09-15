@@ -24,6 +24,11 @@ add_filter( 'tiny_mce_before_init', 'themelia_tiny_mce_before_init' );
 # Add custom attributes
 add_filter( 'hybrid_attr_content', 'themelia_attr_content' );
 add_filter( 'hybrid_attr_sidebar', 'themelia_attr_sidebar' );
+add_filter( 'hybrid_attr_sidebarcustom', 'themelia_attr_sidebarcustom', 5, 2 );
+add_filter( 'hybrid_attr_container', 'themelia_attr_container', 5 );
+add_filter( 'hybrid_attr_access', 'themelia_attr_access', 5 );
+add_filter( 'hybrid_attr_access-inner', 'themelia_attr_access_inner', 5 );
+add_filter( 'hybrid_attr_main', 'themelia_attr_main', 5 );
 
 # Custom filtering for Site Title & Description
 add_filter( 'hybrid_site_title', 'themelia_get_site_title');
@@ -33,10 +38,10 @@ add_filter( 'hybrid_site_description', 'themelia_get_site_description');
 add_filter( 'wp_get_attachment_image_attributes', 'themelia_post_thumbnail_sizes_attr', 10 , 3 );
 
 #Changing excerpt more
-add_filter('excerpt_more', 'themelia_new_excerpt_more');
+add_filter('excerpt_more', 'themelia_excerpt_more');
 
 #Read More Button For Excerpt
-add_filter( 'the_excerpt', 'themeprefix_excerpt_read_more_link' );
+add_filter( 'the_excerpt', 'themelia_excerpt_read_more_link' );
 
 # Disable default Breadcrumbs for bbPress plugin.
 add_filter ('bbp_no_breadcrumb', 'themelia_bbp_no_breadcrumb');
@@ -50,6 +55,7 @@ add_filter ('bbp_no_breadcrumb', 'themelia_bbp_no_breadcrumb');
  * @return void
  */
 function themelia_register_image_sizes() {
+
 	// Sets the 'post-thumbnail' size.
 	set_post_thumbnail_size( 150, 150, true );
 }
@@ -62,6 +68,7 @@ function themelia_register_image_sizes() {
  * @return void
  */
 function themelia_register_menus() {
+
 	register_nav_menu( 'primary',    esc_html_x( 'Primary Menu', 'nav menu location', 'themelia' ) );
 	register_nav_menu( 'mobile',     esc_html_x( 'Mobile  Menu', 'nav menu location', 'themelia' ) );
 	register_nav_menu( 'subsidiary', esc_html_x( 'Footer  Menu', 'nav menu location', 'themelia' ) );
@@ -105,8 +112,7 @@ function themelia_register_sidebars() {
 			'description' => esc_html__( 'A sidebar located in the upper footer of the site. Optimized for one wide widget (and multiples thereof).', 'themelia' )
 		)
 	);
-	
-	
+
 	hybrid_register_sidebar(
 		array(
 			'id'          => 'footer-1',
@@ -114,6 +120,7 @@ function themelia_register_sidebars() {
 			'description' => __( 'A sidebar located in the footer of the site. Optimized for one, two, three or four widgets (and multiples thereof).', 'themelia' )
 		)
 	);
+
 	hybrid_register_sidebar(
 		array(
 			'id'          => 'footer-2',
@@ -121,6 +128,7 @@ function themelia_register_sidebars() {
 			'description' => __( 'A sidebar located in the footer of the site. Optimized for one, two, three or four widgets (and multiples thereof).', 'themelia' )
 		)
 	);
+
 	hybrid_register_sidebar(
 		array(
 			'id'          => 'footer-3',
@@ -128,6 +136,7 @@ function themelia_register_sidebars() {
 			'description' => __( 'A sidebar located in the footer of the site. Optimized for one, two, three or four widgets (and multiples thereof).', 'themelia' )
 		)
 	);
+
 	hybrid_register_sidebar(
 		array(
 			'id'          => 'footer-4',
@@ -138,10 +147,12 @@ function themelia_register_sidebars() {
 }
 
 if ( class_exists( 'WooCommerce' ) || class_exists( 'Easy_Digital_Downloads' ) ) {
+
 	add_action( 'widgets_init', 'themelia_register_special_sidebar', 5 );
 }
 
 function themelia_register_special_sidebar() {
+
 	hybrid_register_sidebar(
 		array(
 			'id'          => 'special',
@@ -152,6 +163,7 @@ function themelia_register_special_sidebar() {
 }
 	  
 function themelia_primary_sidebar() {
+
 	if ( class_exists( 'WooCommerce' ) || class_exists( 'Easy_Digital_Downloads' ) ) {
 		if ( is_singular( 'product' ) || is_post_type_archive( 'product' ) || is_singular( 'download' ) || is_post_type_archive( 'download' ) ) {
 			return 'special';
@@ -201,6 +213,7 @@ function themelia_enqueue_scripts() {
  * @global object  $wp_styles
  */
 function themelia_register_styles() {
+
 	global $wp_styles;
 
 	$suffix = hybrid_get_min_suffix();
@@ -212,6 +225,9 @@ function themelia_register_styles() {
 	
 	wp_register_style( 'themelia-parent',   hybrid_get_parent_stylesheet_uri() );
 	wp_register_style( 'themelia-style',    get_stylesheet_uri() );
+	
+	// Registering locale style for embeds. @see https://core.trac.wordpress.org/ticket/36839
+	wp_register_style( 'themelia-locale', get_locale_stylesheet_uri() );
 }
 
 
@@ -223,24 +239,20 @@ function themelia_register_styles() {
  * @return void
  */
 function themelia_enqueue_styles() {
-	
+
 	// Load Ionicons.
 	wp_enqueue_style( 'themelia-ionicons' );
-	
+
 	// Load Unsemantic CSS framework.
 	wp_enqueue_style( 'themelia-unsemantic' );
-
-	// Load gallery style if 'cleaner-gallery' is active.
-	if ( current_theme_supports( 'cleaner-gallery' ) )
-		wp_enqueue_style( 'hybrid-gallery' );
 
 	// Load parent theme stylesheet if child theme is active.
 	if ( is_child_theme() )
 		wp_enqueue_style( 'themelia-parent' );
 
-	// Load active theme hybrid.
+	// Load theme stylesheet.
 	wp_enqueue_style( 'themelia-style' );
-	
+
 }
 
 
@@ -331,13 +343,8 @@ function themelia_tiny_mce_before_init( $settings ) {
 	return $settings;
 }
 
+
 /**
- * @dariodev
- *
- */
- 
- 
- /**
  * Sidebar attributes.
  *
  * @since  Themelia 1.0.0
@@ -346,8 +353,7 @@ function themelia_tiny_mce_before_init( $settings ) {
  * @param  string  $context
  * @return array
  */
-add_filter( 'hybrid_attr_sidebarcustom', 'hybrid_attr_sidebarcustom', 5, 2 );
-function hybrid_attr_sidebarcustom( $attr, $context ) {
+function themelia_attr_sidebarcustom( $attr, $context ) {
 
 	$attr['class'] = 'sidebar';
 	$attr['role']  = 'complementary';
@@ -361,7 +367,7 @@ function hybrid_attr_sidebarcustom( $attr, $context ) {
 
 		if ( $sidebar_name ) {
 			// Translators: The %s is the sidebar name. This is used for the 'aria-label' attribute.
-			$attr['aria-label'] = esc_attr( sprintf( _x( '%s Sidebar', 'sidebar aria label', 'hybrid-core' ), $sidebar_name ) );
+			$attr['aria-label'] = esc_attr( sprintf( _x( '%s Sidebar', 'sidebar aria label', 'themelia' ), $sidebar_name ) );
 		}
 	}
 
@@ -370,64 +376,26 @@ function hybrid_attr_sidebarcustom( $attr, $context ) {
 
 	return $attr;
 }
- 
+
 /**
- * Menu fallback. 
+ * Custom attributes / build layout.
  *
- * @param  array $args
- * @return string
- * @since Themelia 1.0.0
+ * @since  Themelia 1.0.0
+ * @access public
+ * @param  array   $attr
+ * @param  string  $context
+ * @return array
  */
-/**
- * Menu fallback. Link to the menu editor if that is useful.
- *
- * @param  array $args
- * @return string
- */
-function link_to_menu_editor( $args )
-{
-	if ( ! current_user_can( 'manage_options' ) )
-	{
-		return;
-	}
-
-	// see wp-includes/nav-menu-template.php for available arguments
-	extract( $args );
-
-	$link = $link_before
-		. '<a href="' .admin_url( 'nav-menus.php' ) . '">' . $before . 'Add a menu' . $after . '</a>'
-		. $link_after;
-
-	// We have a list
-	if ( FALSE !== stripos( $items_wrap, '<ul' )
-		or FALSE !== stripos( $items_wrap, '<ol' )
-	)
-	{
-		$link = "<li>$link</li>";
-	}
-
-	$output = sprintf( $items_wrap, $menu_id, $menu_class, $link );
-	if ( ! empty ( $container ) )
-	{
-		$output  = "<$container class='$container_class' id='$container_id'>$output</$container>";
-	}
-
-	if ( $echo )
-	{
-		echo $output;
-	}
-
-	return $output;
-}
- 
-
 function themelia_attr_content( $attr ) {
+
 	if ( '1c' == hybrid_get_theme_layout() ) :
 		$attr['class'] .= ' grid-100';
 	endif;
+
 	if ( '2c-l' == hybrid_get_theme_layout() ) :
 		$attr['class'] .= ' grid-70 tablet-grid-66';
 	endif;
+
 	if ( '2c-r' == hybrid_get_theme_layout() ) :
 		$attr['class'] .= ' grid-70 tablet-grid-66 push-30 tablet-push-33';
 	endif;
@@ -435,12 +403,58 @@ function themelia_attr_content( $attr ) {
 	return $attr;
 }
 
+
 function themelia_attr_sidebar( $attr ) {
+
 	if ( '2c-r' == hybrid_get_theme_layout() ) :
 		$attr['class'] .= ' pull-70 tablet-pull-66';
 	endif;
+
 	$attr['class'] .= ' grid-30 tablet-grid-33';
 	
+	return $attr;
+}
+
+/**
+ * Custom filters / Containers attributes.
+ *
+ * @since  Themelia 1.0.4
+ * @access public
+ * @param  array   $attr
+ * @return array
+ */
+function themelia_attr_container( $attr ) {
+
+	$attr['id']       = 'container';
+	$attr['class']    = 'container';
+
+	return $attr;
+}
+
+function themelia_attr_access( $attr ) {
+
+	$attr['id']       = 'access';
+	$attr['class']    = 'site-access';
+	$attr['class']   .= ' grid-container';
+
+	return $attr;
+}
+
+function themelia_attr_access_inner( $attr ) {
+
+	$attr['id']       = 'access-inner';
+	$attr['class']    = 'access-inner';
+	$attr['class']   .= ' grid-100';
+	$attr['class']   .= ' relative';
+
+	return $attr;
+}
+
+function themelia_attr_main( $attr ) {
+
+	$attr['id']       = 'main';
+	$attr['class']    = 'main';
+
 	return $attr;
 }
 
@@ -499,53 +513,43 @@ if ( ! function_exists( 'themelia_construct_site_title' ) ) :
 endif;
 
 
-/**
- * Custom Paging Navigation.
- *
- * @package Themelia
- */
-if ( ! function_exists( 'themelia_paging_nav' ) ) :
+if ( ! function_exists( 'themelia_paging_nav' ) ) {
+	/**
+	 * Display navigation to next/previous set of posts when applicable.
+	 *
+	 * @package Themelia
+	 */
 	function themelia_paging_nav() {
-		// Don't print empty markup if there's only one page.
-		if ( $GLOBALS['wp_query']->max_num_pages < 2 ) {
-			return;
-		}
 
-		$paged        = get_query_var( 'paged' ) ? intval( get_query_var( 'paged' ) ) : 1;
-		$pagenum_link = html_entity_decode( get_pagenum_link() );
-		$query_args   = array();
-		$url_parts    = explode( '?', $pagenum_link );
-
-		if ( isset( $url_parts[1] ) ) {
-			wp_parse_str( $url_parts[1], $query_args );
-		}
-
-		$pagenum_link = remove_query_arg( array_keys( $query_args ), $pagenum_link );
-		$pagenum_link = trailingslashit( $pagenum_link ) . '%_%';
-
-		$format  = $GLOBALS['wp_rewrite']->using_index_permalinks() && ! strpos( $pagenum_link, 'index.php' ) ? 'index.php/' : '';
-		$format .= $GLOBALS['wp_rewrite']->using_permalinks() ? user_trailingslashit( 'page/%#%', 'paged' ) : '?paged=%#%';
-
-		// Set up paginated links.
-		$links = paginate_links( array(
-			'base'     => $pagenum_link,
-			'format'   => $format,
-			'total'    => $GLOBALS['wp_query']->max_num_pages,
-			'current'  => $paged,
-			'type'     => 'list',
-			'mid_size' => apply_filters( 'themelia_pagination_mid_size', 2 ),
-			'add_args' => array_map( 'urlencode', $query_args ),
-			'prev_text' => __( '&larr; Previous', 'themelia' ),
-			'next_text' => __( 'Next &rarr;', 'themelia' ),
-		) );
-
-		if ( $links ) :
-
-			echo '<div class="pagination">' . $links . '</div>'; 
-
-		endif;
+		$args = array(
+			'mid_size'  => apply_filters( 'themelia_pagination_mid_size', 2 ),
+			'prev_text' => _x( '&larr; Previous', 'posts navigation', 'themelia' ),
+			'next_text' => _x( 'Next &rarr;',     'posts navigation', 'themelia' )
+			);
+		
+		the_posts_pagination( $args );
 	}
-endif;
+}
+
+
+if ( ! function_exists( 'themelia_post_nav' ) ) {
+	/**
+	 * Display navigation to next/previous post when applicable.
+	 */
+	function themelia_post_nav() {
+
+		$args = array(
+			'next_text' => '<span class="meta-nav" aria-hidden="true">' . __( 'Next', 'themelia' ) . '</span> ' .
+				'<span class="screen-reader-text">' . __( 'Next post:', 'themelia' ) . '</span> ' .
+				'<span class="post-title">%title</span>',
+			'prev_text' => '<span class="meta-nav" aria-hidden="true">' . __( 'Previous', 'themelia' ) . '</span> ' .
+				'<span class="screen-reader-text">' . __( 'Previous post:', 'themelia' ) . '</span> ' .
+				'<span class="post-title">%title</span>',
+		);
+
+		the_post_navigation( $args );
+	}
+}
 
 
 /**
@@ -594,6 +598,7 @@ function themelia_get_site_description() {
  * @return string A source size value for use in a post thumbnail 'sizes' attribute.
  */
 function themelia_post_thumbnail_sizes_attr( $attr, $attachment, $size ) {
+
 	if ( 'post-thumbnail' === $size ) {
 		is_active_sidebar( 'primary' ) && $attr['sizes'] = '(max-width: 709px) 85vw, (max-width: 909px) 67vw, (max-width: 984px) 60vw, (max-width: 1362px) 62vw, 840px';
 		! is_active_sidebar( 'primary' ) && $attr['sizes'] = '(max-width: 709px) 85vw, (max-width: 909px) 67vw, (max-width: 1362px) 88vw, 1200px';
@@ -614,6 +619,7 @@ if ( ! function_exists( 'themelia_post_thumbnail' ) ) :
  * @since Themelia 1.0.0
  */
 function themelia_post_thumbnail() {
+
 	if ( post_password_required() || is_attachment() || ! has_post_thumbnail() ) {
 		return;
 	}
@@ -636,15 +642,26 @@ function themelia_post_thumbnail() {
 endif;
 
 
-function themelia_new_excerpt_more($more) {
+/**
+ * Filter the string displayed after a trimmed excerpt
+ *
+ * @since Themelia 1.0.0
+ */
+function themelia_excerpt_more($more) {
+
 	return '&hellip;';
 }
 
 
-//Read More Button For Excerpt
-function themeprefix_excerpt_read_more_link( $output ) {
+/**
+ * Read More Button For Excerpt
+ *
+ * @since Themelia 1.0.0
+ */
+function themelia_excerpt_read_more_link( $output ) {
+
 	global $post;
-	return $output . ' <a href="' . get_permalink( $post->ID ) . '" class="entry-more-link"><span>' . esc_attr_x( 'Read More', 'excerpt', 'themelia' ) . '</span></a>';
+	return $output . ' <a href="' . esc_url( get_permalink( $post->ID ) ) . '" class="entry-more-link"><span>' . esc_attr_x( 'Read More', 'excerpt', 'themelia' ) . '</span></a>';
 }
 
 
@@ -675,5 +692,6 @@ function themelia_has_gravatar( $email_address ) {
  * @since  Themelia 1.0.0
  */
 function themelia_bbp_no_breadcrumb ($param) {
+
 	return true;
 }
